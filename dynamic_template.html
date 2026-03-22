@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+    <style>
+        :root {
+            --border-color: {{ styles.line_color }};
+            --border-width: {{ styles.line_width }};
+            --font-size: {{ styles.font_size }};
+            --padding-v: {{ styles.padding_v }};
+            --padding-h: {{ styles.padding_h }};
+            --bg-today: {{ styles.color_today }};
+            --bg-box: {{ styles.color_box }};
+            --bg-mtd: {{ styles.color_mtd }};
+            --bg-ytd: {{ styles.color_ytd }};
+            --neg-text: {{ styles.neg_font_color }};
+            --neg-bg: {{ styles.neg_bg_color }};
+            --pos-text: {{ styles.pos_font_color }};
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: {{ styles.font_family|safe }};
+            padding: 15px;
+            width: 2180px;
+            background: #fff;
+        }
+
+        .title {
+            text-align: center;
+            font-size: 32px;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .weather-bar {
+            text-align: center;
+            font-size: 16px;
+            font-weight: bold;
+            border: 1.5px solid var(--border-color);
+            padding: 8px;
+            margin-bottom: 12px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            border: calc(var(--border-width) * 2) solid var(--border-color);
+            margin-bottom: 25px;
+        }
+
+        th, td {
+            border: var(--border-width) solid var(--border-color);
+            padding: var(--padding-v) var(--padding-h);
+            text-align: center;
+            font-size: var(--font-size);
+        }
+
+        th {
+            background: #f2f2f2;
+            font-weight: bold;
+        }
+
+        .head-box { background: var(--bg-box); }
+        .head-today { background: var(--bg-today) !important; }
+        .col-mtd { background: var(--bg-mtd) !important; }
+        .col-ytd { background: var(--bg-ytd) !important; }
+
+        .cell-today { background: var(--bg-today) !important; font-weight: bold; }
+        .cell-mtd { background: var(--bg-mtd) !important; }
+        .cell-ytd { background: var(--bg-ytd) !important; }
+
+        .neg { background-color: var(--neg-bg) !important; color: var(--neg-text) !important; font-weight: bold; }
+        .pos { color: var(--pos-text) !important; font-weight: bold; }
+
+        .row-name {
+            font-weight: bold;
+            text-align: left !important;
+            padding-left: 12px;
+            width: 170px;
+            background: #fdfdfd;
+        }
+
+        .charts-container {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .chart-row {
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .chart-box {
+            width: 49.5%;
+            height: {{ styles.chart_height }}px;
+            border: 1px solid #ddd;
+            padding: 15px;
+            background: #fff;
+        }
+
+        .footer {
+            text-align: center;
+            color: #000000;
+            font-family: "Microsoft YaHei", sans-serif;
+            font-size: 16px;
+            font-weight: bold;
+            margin-top: 30px;
+            padding-bottom: 20px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="title">{{ report_title }}{{ report_month }}月{{ report_day }}日经营简报 {{ report_weekday }}</div>
+    <div class="weather-bar">{{ weather_str }}</div>
+
+    <table>
+        <thead>
+            <tr>
+                <th rowspan="2" class="head-box">{{ col_titles.col_item }}</th>
+                <th class="head-today">{{ col_titles.col_today }}</th>
+                <th class="head-box">{{ col_titles.col_yesterday }}</th>
+                <th class="head-box">{{ col_titles.col_last_week }}</th>
+                <th class="head-box">{{ col_titles.col_last_year }}</th>
+                <th rowspan="2" class="head-box">{{ col_titles.col_dod }}</th>
+                <th rowspan="2" class="head-box">{{ col_titles.col_wow }}</th>
+                <th rowspan="2" class="head-box">{{ col_titles.col_yoy }}</th>
+                <th colspan="8" class="col-mtd">{{ col_titles.col_mtd_title }} (1日至{{ report_day }}日累计)</th>
+                <th colspan="12" class="col-ytd">{{ col_titles.col_ytd_title }} (1月1日至{{ report_month }}月{{ report_day }}日累计)</th>
+            </tr>
+            <tr>
+                <th class="head-today">{{ date_n }}</th>
+                <th class="head-box">{{ date_y }}</th>
+                <th class="head-box">{{ date_w }}</th>
+                <th class="head-box">{{ date_a }}</th>
+                <th class="col-mtd">{{ report_month }}{{ col_titles.col_mtd_month }}</th>
+                <th class="col-mtd">{{ col_titles.col_mtd_avg }}</th>
+                <th class="col-mtd">{{ last_month_name }}</th>
+                <th class="col-mtd">{{ col_titles.col_mtd_avg }}</th>
+                <th class="col-mtd">{{ col_titles.col_mtd_last_year_val }}</th>
+                <th class="col-mtd">{{ col_titles.col_mtd_last_year_avg }}</th>
+                <th class="col-mtd">{{ col_titles.col_mtd_ratio }}</th>
+                <th class="col-mtd">{{ col_titles.col_mtd_yoy }}</th>
+                <th class="col-ytd">{{ col_titles.col_ytd_avg }}</th>
+                <th class="col-ytd">{{ col_titles.col_ytd_val }}</th>
+                <th class="col-ytd">{{ col_titles.col_ytd_wknd }}</th>
+                <th class="col-ytd">{{ col_titles.col_ytd_wday }}</th>
+                <th class="col-ytd">{{ col_titles.col_ytd_last_year_avg }}</th>
+                <th class="col-ytd">{{ col_titles.col_ytd_last_year_val }}</th>
+                <th class="col-ytd">{{ col_titles.col_ytd_last_year_wknd }}</th>
+                <th class="col-ytd">{{ col_titles.col_ytd_last_year_wday }}</th>
+                <th class="col-ytd">{{ col_titles.col_ytd_last_year_avg_ratio }}</th>
+                <th class="col-ytd">{{ col_titles.col_ytd_wknd_ratio }}</th>
+                <th class="col-ytd">{{ col_titles.col_ytd_wday_ratio }}</th>
+                <th class="col-ytd">{{ col_titles.col_ytd_yoy }}</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for row in table_data %}
+            <tr>
+                <td class="row-name">{{ row.name }}</td>
+                {% set keys = ['v_n','v_y','v_w','v_a','r_y','r_w','r_a','r_m','m_v','m_avg','m_lm','m_lm_avg','m_ly','m_ly_avg','m_ratio','m_yoy','y_avg','y_v','y_wknd','y_wday','y_ly_avg','y_ly_v','y_ly_wknd','y_ly_wday','y_avg_ratio','y_wknd_ratio','y_wday_ratio','y_yoy'] %}
+                {% for k in keys %}
+                    {% if row[k] is defined %}
+                        {% set val = row[k] | string %}
+                        <td class="{{ 'cell-today' if k == 'v_n' else '' }} 
+                                   {{ 'cell-mtd' if k.startswith('m_') else '' }} 
+                                   {{ 'cell-ytd' if k.startswith('y_') else '' }} 
+                                   {{ 'neg' if '%' in val and '-' in val else ('pos' if '%' in val and not '-' in val else '') }}">
+                            {{ row[k] }}
+                        </td>
+                    {% endif %}
+                {% endfor %}
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <div class="charts-container">
+        <div class="chart-row">
+            <div id="c1" class="chart-box"></div>
+            <div id="c2" class="chart-box"></div>
+        </div>
+        <div class="chart-row">
+            <div id="c3" class="chart-box"></div>
+            <div id="c4" class="chart-box"></div>
+        </div>
+        <div class="chart-row">
+            <div id="c5" class="chart-box"></div>
+            <div id="c6" class="chart-box"></div>
+        </div>
+        <div class="chart-row">
+            <div id="c7" class="chart-box"></div>
+            <div id="c8" class="chart-box"></div>
+        </div>
+        <div class="chart-row">
+            <div id="c9" class="chart-box"></div>
+            <div id="c10" class="chart-box"></div>
+        </div>
+        <div class="chart-row">
+            <div id="c11" class="chart-box"></div>
+            <div id="c12" class="chart-box"></div>
+        </div>
+    </div>
+
+    <div class="footer">day-paper 资料 {{ print_time }}</div>
+
+    <script>
+        const chartStyle = {
+            smooth: {{ 'true' if chart_cfg.smooth == 'true' else 'false' }},
+            symbol: {{ "'circle'" if chart_cfg.show_symbol == 'true' else "'none'" }}
+        };
+
+        const commonOpt = { 
+            animation: false, 
+            grid: { top: '18%', bottom: '15%', left: '5%', right: '5%', containLabel: true }, 
+            tooltip: { trigger: 'axis' } 
+        };
+
+        const labelOption = {
+            show: true,
+            position: 'top',
+            fontSize: 10,
+            color: '#333'
+        };
+
+        const x = {{ chart_x | tojson }};
+
+        echarts.init(document.getElementById('c1')).setOption({
+            ...commonOpt, 
+            title: { text: '广场客流/进店客流趋势', left: 'center' },
+            legend: { right: 10, top: 0, data: ['广场客流', '进店客流'] },
+            xAxis: { type: 'category', data: x, axisLabel: { interval: 1, rotate: 30 } },
+            yAxis: { type: 'value' },
+            series: [
+                { name: '广场客流', type: 'bar', data: {{ cf_plaza | tojson }}, itemStyle: { color: '#1f77b4' }, label: labelOption },
+                { name: '进店客流', type: 'line', data: {{ cf_store | tojson }}, itemStyle: { color: '#ff7f0e' }, smooth: chartStyle.smooth, symbol: chartStyle.symbol, label: labelOption }
+            ]
+        });
+
+        echarts.init(document.getElementById('c2')).setOption({
+            ...commonOpt, 
+            title: { text: '车场经营情况', left: 'center' },
+            legend: { right: 10, top: 0, data: ['收入(元)', '车流(辆)'] },
+            xAxis: { type: 'category', data: x, axisLabel: { interval: 1, rotate: 30 } },
+            yAxis: { type: 'value' },
+            series: [
+                { name: '收入(元)', type: 'line', data: {{ cc_income | tojson }}, itemStyle: { color: '#2ca02c' }, smooth: chartStyle.smooth, symbol: chartStyle.symbol, label: labelOption },
+                { name: '车流(辆)', type: 'line', data: {{ cc_flow | tojson }}, itemStyle: { color: '#d62728' }, smooth: chartStyle.smooth, symbol: chartStyle.symbol, label: labelOption }
+            ]
+        });
+
+        echarts.init(document.getElementById('c3')).setOption({
+            ...commonOpt, 
+            title: { text: '广场客流同比趋势 (%)', left: 'center' },
+            legend: { right: 10, top: 0, data: ['客流同比'] },
+            xAxis: { type: 'category', data: x, axisLabel: { interval: 1, rotate: 30 } },
+            yAxis: { type: 'value', axisLabel: { formatter: '{value}%' } },
+            series: [{
+                name: '客流同比', type: 'line', data: {{ cf_plaza_yoy | tojson }}, itemStyle: { color: '#1f77b4' }, 
+                smooth: chartStyle.smooth, symbol: chartStyle.symbol, label: { ...labelOption, formatter: '{c}%' },
+                markLine: { data: [{ type: 'none', yAxis: 0 }], lineStyle: { color: '#333', type: 'solid' } }
+            }]
+        });
+
+        echarts.init(document.getElementById('c4')).setOption({
+            ...commonOpt, 
+            title: { text: '出场车流同比趋势 (%)', left: 'center' },
+            legend: { right: 10, top: 0, data: ['车流同比'] },
+            xAxis: { type: 'category', data: x, axisLabel: { interval: 1, rotate: 30 } },
+            yAxis: { type: 'value', axisLabel: { formatter: '{value}%' } },
+            series: [{
+                name: '车流同比', type: 'line', data: {{ cc_flow_yoy | tojson }}, itemStyle: { color: '#d62728' }, 
+                smooth: chartStyle.smooth, symbol: chartStyle.symbol, label: { ...labelOption, formatter: '{c}%' },
+                markLine: { data: [{ type: 'none', yAxis: 0 }], lineStyle: { color: '#333', type: 'solid' } }
+            }]
+        });
+
+        echarts.init(document.getElementById('c5')).setOption({
+            ...commonOpt, 
+            title: { text: '超市客流同比趋势 (%)', left: 'center' },
+            legend: { right: 10, top: 0, data: ['超市同比'] },
+            xAxis: { type: 'category', data: x, axisLabel: { interval: 1, rotate: 30 } },
+            yAxis: { type: 'value', axisLabel: { formatter: '{value}%' } },
+            series: [{
+                name: '超市同比', type: 'line', data: {{ cf_super_yoy | tojson }}, itemStyle: { color: '#9467bd' }, 
+                smooth: chartStyle.smooth, symbol: chartStyle.symbol, label: { ...labelOption, formatter: '{c}%' },
+                markLine: { data: [{ type: 'none', yAxis: 0 }], lineStyle: { color: '#333', type: 'solid' } }
+            }]
+        });
+
+        echarts.init(document.getElementById('c6')).setOption({
+            ...commonOpt, 
+            title: { text: '影院客流同比趋势 (%)', left: 'center' },
+            legend: { right: 10, top: 0, data: ['影院同比'] },
+            xAxis: { type: 'category', data: x, axisLabel: { interval: 1, rotate: 30 } },
+            yAxis: { type: 'value', axisLabel: { formatter: '{value}%' } },
+            series: [{
+                name: '影院同比', type: 'line', data: {{ cf_cinema_yoy | tojson }}, itemStyle: { color: '#e377c2' }, 
+                smooth: chartStyle.smooth, symbol: chartStyle.symbol, label: { ...labelOption, formatter: '{c}%' },
+                markLine: { data: [{ type: 'none', yAxis: 0 }], lineStyle: { color: '#333', type: 'solid' } }
+            }]
+        });
+
+        echarts.init(document.getElementById('c7')).setOption({
+            ...commonOpt, 
+            title: { text: '商户客流同比趋势 (%)', left: 'center' },
+            legend: { right: 10, top: 0, data: ['商户客流同比'] },
+            xAxis: { type: 'category', data: x, axisLabel: { interval: 1, rotate: 30 } },
+            yAxis: { type: 'value', axisLabel: { formatter: '{value}%' } },
+            series: [{
+                name: '商户客流同比', type: 'line', data: {{ cf_store_yoy | tojson }}, itemStyle: { color: '#17becf' }, 
+                smooth: chartStyle.smooth, symbol: chartStyle.symbol, label: { ...labelOption, formatter: '{c}%' },
+                markLine: { data: [{ type: 'none', yAxis: 0 }], lineStyle: { color: '#333', type: 'solid' } }
+            }]
+        });
+
+        echarts.init(document.getElementById('c8')).setOption({
+            ...commonOpt, 
+            title: { text: '销售同比趋势 (%)', left: 'center' },
+            legend: { right: 10, top: 0, data: ['销售同比'] },
+            xAxis: { type: 'category', data: x, axisLabel: { interval: 1, rotate: 30 } },
+            yAxis: { type: 'value', axisLabel: { formatter: '{value}%' } },
+            series: [{
+                name: '销售同比', type: 'line', data: {{ cf_sales_yoy | tojson }}, itemStyle: { color: '#bcbd22' }, 
+                smooth: chartStyle.smooth, symbol: chartStyle.symbol, label: { ...labelOption, formatter: '{c}%' },
+                markLine: { data: [{ type: 'none', yAxis: 0 }], lineStyle: { color: '#333', type: 'solid' } }
+            }]
+        });
+
+        const monthX = ['1月', '2月', '3月', '4月', '5月', '6月', '7月', '8月', '9月', '10月', '11月', '12月'];
+
+        echarts.init(document.getElementById('c9')).setOption({
+            ...commonOpt,
+            title: { text: '广场客流 月均对比 (万)', left: 'center' },
+            legend: { right: 10, top: 0, data: [{{ report_prev_year | string | tojson }}, {{ report_cur_year | string | tojson }}] },
+            xAxis: { type: 'category', data: monthX },
+            yAxis: { type: 'value' },
+            series: [
+                { name: {{ report_prev_year | string | tojson }}, type: 'bar', data: {{ monthly_plaza_25 | tojson }}, itemStyle: { color: '#00cca0' }, label: { ...labelOption, formatter: function(p){ return p.value ? p.value.toFixed(2) : ''; } } },
+                { name: {{ report_cur_year | string | tojson }}, type: 'bar', data: {{ monthly_plaza_26 | tojson }}, itemStyle: { color: '#8fbce2' }, label: { ...labelOption, formatter: function(p){ return p.value ? p.value.toFixed(2) : ''; } } }
+            ]
+        });
+
+        echarts.init(document.getElementById('c10')).setOption({
+            ...commonOpt,
+            title: { text: '出场车流 月均对比 (辆)', left: 'center' },
+            legend: { right: 10, top: 0, data: [{{ report_prev_year | string | tojson }}, {{ report_cur_year | string | tojson }}] },
+            xAxis: { type: 'category', data: monthX },
+            yAxis: { type: 'value' },
+            series: [
+                { name: {{ report_prev_year | string | tojson }}, type: 'bar', data: {{ monthly_car_25 | tojson }}, itemStyle: { color: '#f2a900' }, label: { ...labelOption, formatter: function(p){ return p.value ? p.value.toFixed(0) : ''; } } },
+                { name: {{ report_cur_year | string | tojson }}, type: 'bar', data: {{ monthly_car_26 | tojson }}, itemStyle: { color: '#fc9272' }, label: { ...labelOption, formatter: function(p){ return p.value ? p.value.toFixed(0) : ''; } } }
+            ]
+        });
+
+        echarts.init(document.getElementById('c11')).setOption({
+            ...commonOpt,
+            title: { text: '进店客流 月均对比 (万)', left: 'center' },
+            legend: { right: 10, top: 0, data: [{{ report_prev_year | string | tojson }}, {{ report_cur_year | string | tojson }}] },
+            xAxis: { type: 'category', data: monthX },
+            yAxis: { type: 'value' },
+            series: [
+                { name: {{ report_prev_year | string | tojson }}, type: 'bar', data: {{ monthly_store_25 | tojson }}, itemStyle: { color: '#8e44ad' }, label: { ...labelOption, formatter: function(p){ return p.value ? p.value.toFixed(2) : ''; } } },
+                { name: {{ report_cur_year | string | tojson }}, type: 'bar', data: {{ monthly_store_26 | tojson }}, itemStyle: { color: '#e08283' }, label: { ...labelOption, formatter: function(p){ return p.value ? p.value.toFixed(2) : ''; } } }
+            ]
+        });
+
+        echarts.init(document.getElementById('c12')).setOption({
+            ...commonOpt,
+            title: { text: '广场销售 月均对比 (万)', left: 'center' },
+            legend: { right: 10, top: 0, data: [{{ report_prev_year | string | tojson }}, {{ report_cur_year | string | tojson }}] },
+            xAxis: { type: 'category', data: monthX },
+            yAxis: { type: 'value' },
+            series: [
+                { name: {{ report_prev_year | string | tojson }}, type: 'bar', data: {{ monthly_sales_25 | tojson }}, itemStyle: { color: '#2e86c1' }, label: { ...labelOption, formatter: function(p){ return p.value ? p.value.toFixed(2) : ''; } } },
+                { name: {{ report_cur_year | string | tojson }}, type: 'bar', data: {{ monthly_sales_26 | tojson }}, itemStyle: { color: '#48c9b0' }, label: { ...labelOption, formatter: function(p){ return p.value ? p.value.toFixed(2) : ''; } } }
+            ]
+        });
+    </script>
+</body>
+</html>

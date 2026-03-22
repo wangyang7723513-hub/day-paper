@@ -1,0 +1,40 @@
+# 本地数据缓存（运行后自动生成，不上传）
+car_history.csv
+weather_history.json
+
+# 运行时生成的报表文件
+day_paper.png
+temp_report.html
+
+# 敏感配置（包含飞书凭证，上传模板版本即可）
+# config.ini  ← 这里注释掉，允许上传示例配置
+
+# Python 缓存
+__pycache__/
+*.pyc
+*.pyo
+
+# 系统文件
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# IDE 配置
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# 非主干目录（本地备份和测试文件夹不上传）
+backup/
+完整版-最新/
+新建文件夹/
+新建文件夹 (2)/
+新建文件夹 (3)/
+新建文件夹 (4)/
+skills/
+.agents/
+.gemini/
+
+# 其他本地文件
+python-html模版-经营报表自动化引擎开发提示词.txt
