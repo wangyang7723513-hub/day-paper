@@ -1,6 +1,5 @@
-# 本地数据缓存（运行后自动生成，不上传）
-car_history.csv
-weather_history.json
+# 本地数据缓存（历史数据文件，项目运行必须）
+# car_history.csv 和 weather_history.json 已上传，确保同比数据可用
 
 # 运行时生成的临时文件
 temp_report.html
